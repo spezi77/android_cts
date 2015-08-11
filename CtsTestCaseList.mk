@@ -133,6 +133,7 @@ cts_host_libraries := \
     CtsHoloHostTestCases \
     CtsHostJank \
     CtsHostUi \
+    CtsJdwpSecurityHostTestCases \
     CtsMonkeyTestCases \
     CtsSampleHostTestCases \
     CtsUsbTests
@@ -147,7 +148,8 @@ cts_ui_tests := \
     CtsUiAutomatorTests
 
 cts_device_jars := \
-    CtsDeviceJank
+    CtsDeviceJank \
+    CtsJdwpApp
 
 # All the files that will end up under the repository/testcases
 # directory of the final CTS distribution.

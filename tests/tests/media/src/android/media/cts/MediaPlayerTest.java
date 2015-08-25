@@ -76,6 +76,66 @@ public class MediaPlayerTest extends MediaPlayerTestBase {
             mOutFile.delete();
         }
     }
+
+    public void testFlacHeapOverflow() throws Exception {
+        testIfMediaServerDied(R.raw.heap_oob_flac);
+    }
+
+    private void testIfMediaServerDied(int res) throws Exception {
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                assertTrue(mp == mMediaPlayer);
+                assertTrue("mediaserver process died", what != MediaPlayer.MEDIA_ERROR_SERVER_DIED);
+                return false;
+            }
+        });
+
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                assertTrue(mp == mMediaPlayer);
+                mOnCompletionCalled.signal();
+            }
+        });
+
+        AssetFileDescriptor afd = mResources.openRawResourceFd(res);
+        mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+        afd.close();
+        mMediaPlayer.prepare();
+        mMediaPlayer.start();
+        mOnCompletionCalled.waitForSignal();
+        mMediaPlayer.release();
+    }
+
+    // Bug 13652927
+    public void testVorbisCrash() throws Exception {
+        MediaPlayer mp = mMediaPlayer;
+        MediaPlayer mp2 = mMediaPlayer2;
+        AssetFileDescriptor afd2 = mResources.openRawResourceFd(R.raw.testmp3_2);
+        mp2.setDataSource(afd2.getFileDescriptor(), afd2.getStartOffset(), afd2.getLength());
+        afd2.close();
+        mp2.prepare();
+        mp2.setLooping(true);
+        mp2.start();
+
+        for (int i = 0; i < 20; i++) {
+            try {
+                AssetFileDescriptor afd = mResources.openRawResourceFd(R.raw.bug13652927);
+                mp.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                afd.close();
+                mp.prepare();
+                fail("shouldn't be here");
+            } catch (Exception e) {
+                // expected to fail
+                Log.i("@@@", "failed: " + e);
+            }
+            Thread.sleep(500);
+            assertTrue("media server died", mp2.isPlaying());
+            mp.reset();
+        }
+    }
+
     public void testPlayNullSource() throws Exception {
         try {
             mMediaPlayer.setDataSource((String) null);
